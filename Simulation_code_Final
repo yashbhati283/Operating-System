@@ -1,0 +1,141 @@
+#include<stdio.h>
+#include<unistd.h>
+#include<sys/types.h>
+#include<pthread.h>
+#include<semaphore.h>
+struct barrier{
+
+	int barrier_point;
+	int barrier_status;
+}b;
+
+sem_t l;
+int flag1=0,flag2=0,x2=0,x1=0;
+
+int init(int n)
+{
+	if(n>0)
+	{
+
+		b.barrier_point=n;
+		b.barrier_status=2;
+		return 0;
+	}
+	else
+	{
+		return -1;
+	}
+
+}
+
+int  barrier_point(int x)
+{
+	if(x>=b.barrier_point)
+	{
+		return 0;
+	}
+	else
+	{
+		return -1;
+         }
+}
+
+// Threads
+
+void* func1()
+{
+	int temp;
+	do{
+	if(flag1==0)
+	{
+		sem_wait(&l);
+		printf("Process 1  under execution\n");
+		x1++;
+		temp=barrier_point(x1);
+		if(temp==0)
+		{
+			printf("Process currently hit barrier point\n");
+			b.barrier_status-=1;
+			flag1=1;
+		}
+		sem_post(&l);
+	}
+	else
+	{
+		printf("Process 1 currrently blocked\n");
+		if(b.barrier_status==0)
+		{
+			flag1=2;
+			printf("Barrier safe point occured\n");
+		}
+	}
+	if(flag1==2)
+	{
+		printf("Process concurrency occured\n");
+		break;
+	}
+	}while(x1<b.barrier_point);
+
+}
+
+void* func2()
+{
+
+	int temp;
+	do
+	{
+	if(flag2==0)
+	{
+		sem_wait(&l);
+		printf("Process 2 under execution\n");
+		x2++;
+		temp=barrier_point(x2);
+		if(temp==0)
+		{
+			printf("Process currently hit barrier point\n");
+			b.barrier_status-=1;
+			flag2=1;
+		}
+		sem_post(&l);
+	}
+	else
+	{
+		printf("Process 1 currrently blocked");
+		if(b.barrier_status==0)
+		{
+			flag2=2;
+			printf("Barrier safe point occured\n");
+		}
+	}
+	if(flag2==2)
+	{
+		printf("Process concurrency occured\n");
+		break;
+	}
+	}while(x2<barrier_point);
+
+}
+
+main()
+{
+	sem_init(&l,0,2);
+	int n;
+	printf("\n Enter the barrier point :");
+	scanf("%d",&n);
+	int temp=init(n);
+	if(temp==0)
+	{
+		printf("Barrier establised sucessfully\n");
+	}
+	else
+	{
+		printf("\n Unable to establishe barrer point\n");
+	}
+	pthread_t pid1,pid2;
+	pthread_create(&pid1,NULL,func1,NULL);
+	pthread_create(&pid2,NULL,func2,NULL);
+	pthread_join(pid1,NULL);
+	pthread_join(pid2,NULL);
+
+
+}
